@@ -12,7 +12,7 @@ class GameEngine:
         self.setup()
 
         self.menu = Menu()
-        self.game = Game()
+        self.game = Game(self.display)
 
         self.run()
     
@@ -20,7 +20,7 @@ class GameEngine:
         pygame.init()
         pygame.font.init()
         
-        self.display = pygame.display.set_mode((DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT), pygame.RESIZABLE) # Créer la fenêtre du jeu
+        self.display = pygame.display.set_mode((DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT), pygame.RESIZABLE, display=0) # Créer la fenêtre du jeu
 
         pygame.display.set_caption("Heaven")
         self.frequence = pygame.time.Clock()
@@ -66,6 +66,10 @@ class GameEngine:
             elif event.type == pygame.MOUSEMOTION: # Si la souris bouge
                 if self.status == GameStatus.MENU:
                     self.menu.mouse_move(event, self)
+            
+            elif event.type == pygame.VIDEORESIZE:
+                # La fenêtre ne fait plus la même taille
+                self.game.map.zone_decals = self.display.get_size()
 
     def run(self):
         while self.running:

@@ -1,11 +1,33 @@
+from enum import Enum
 import pygame
 from math import *
 from typing import List, Tuple
 
 from constants import *
 from mod.assets import Assets, GameAssets
-from mod.sprites import Sprite
+from mod.entities import Entity, SpriteType
 from mod.camera import *
+
+class EntitiesContainer:
+    def __init__(self):
+        self.dict = {}
+        # chaque clé sera un type d'entité
+
+    def add(self, type: SpriteType, entity: Entity):
+        if not (type in self.dict.keys()):
+            self.dict[type] = [entity]
+        else:
+            self.dict[type].append(entity)
+
+    def get(self, type: SpriteType, coords: Tuple[int, int]) -> Entity | None:
+        if type in self.dict.keys():
+            for ent in self.dict[type]:
+                if (ent.x, ent.y) == coords:
+                    return ent
+    
+    def get_all(self) -> dict[List[Entity]]:
+        return self.dict
+
 
 class Tile:
     def __init__(self, asset: str) -> None:
@@ -14,6 +36,7 @@ class Tile:
 class Layer:
     def __init__(self, y: int) -> None:
         self.map = {}
+        self.entities = EntitiesContainer()
         self.y = y
 
     def insert(self, coords: Tuple[int, int], tile: Tile):
@@ -34,10 +57,17 @@ class Layer:
         if coords in self.map.keys():
             self.remove(coords)
 
+class Zones(Enum):
+    TUTO = 0
+
 class Map:
     def __init__(self) -> None:
         self.layers = {}
         self.centered_assets = [] #["rock1", "rock2"] # Place name of assets wich need to be drawed centered from the coordinates given
+
+        self.actual_zone = Zones.TUTO
+        self.zone_decals = ()
+        self.DEFAULT_ZONE_DECALSs = ()
 
     def add_layer(self, y: int) -> None:
         if not (y in self.layers.keys()):
@@ -58,12 +88,17 @@ class Map:
 
     def get_available_layers(self): # list[Layer]
         l = list(self.layers.values())
-        l.sort()
+        l.sort(key=lambda l: l.y)
         return l
 
     def insert_tile(self, layer: int, coords: Tuple[int, int], tile: Tile):
         if layer in self.layers.keys():
             return self.layers[layer].insert(coords, tile)
+
+
+    def add_entity(self, layer: int, type: SpriteType, entity: Entity):
+        if layer in self.layers.keys():
+            return self.layers[layer].entities.add(type, entity)
             
     def replace_tile(self, layer: int, coords: Tuple[int, int], tile: Tile):
         if layer in self.layers.keys():
@@ -107,10 +142,38 @@ class Map:
                 )
 
 
+    def is_on_screen(self, camera_x, camera_y, screen_width, screen_height, x_pos, y_pos, image_width, image_height):
+        left_bound = camera_x - screen_width / 2
+        right_bound = camera_x + screen_width / 2
+        top_bound = camera_y + screen_height / 2
+        bottom_found = camera_y + screen_height / 2
 
+        left_image = x_pos - image_width / 2
+        right_image = x_pos + image_width / 2
+        top_image = y_pos + image_height / 2
+        bottom_image = y_pos + image_height / 2
+
+        return (right_image > left_bound) and (left_image < right_bound) and (bottom_image > top_bound) and (top_image < bottom_found)
+
+
+    def draw_zone(self, screen: pygame.Surface, assets: Assets, camera: Camera) -> None:
+        asset = None
+        if self.actual_zone == Zones.TUTO:
+            asset = assets.get("map_tuto")
+        
+        if asset is None: return;
+
+        screen.blit(
+            asset,
+            (
+                camera.x + (self.zone_decals[0] // 2),
+                camera.y + (self.zone_decals[1] // 2) 
+            )
+        )
 
     def draw(self, screen: pygame.Surface, assets: Assets, camera: Camera) -> None:
         self.draw_grid(screen, camera)
+        self.draw_zone(screen, assets, camera)
         
         # test
         #rock = assets.get("rock1")
@@ -118,6 +181,7 @@ class Map:
         screen_width, screen_height = screen.get_size()
 
         for layer in self.get_available_layers():
+            # draw tiles
             items = layer.map.items()
             for (x, y), tile in items:
                 # Nous calculons la coordonnée relative de la tuile
@@ -127,11 +191,13 @@ class Map:
                 )
 
                 # Cette valeur permettront de savoir si l'élément est affiché DANS l'écran
-                x_encadrement = [camera.x - screen_width - CASE_SIZE, camera.x + screen_width + CASE_SIZE]
-                y_encadrement = [camera.y - screen_height - CASE_SIZE, camera.y + screen_height + CASE_SIZE]
+                #  x_encadrement = [camera.x, camera.x + (screen_width // 2)]
+                #  y_encadrement = [camera.y, camera.y + (screen_height // 2)]
 
                 # Si la surface est clairement en dehors de l'écran, on ne dessine pas pour optimiser les performances
-                if (y > y_encadrement[0] and y < y_encadrement[1]) and (x > x_encadrement[0] and x < x_encadrement[1]):
+                #if (y > y_encadrement[0] and y < y_encadrement[1]) and (x > x_encadrement[0] and x < x_encadrement[1]):
+                # if  self.is_on_screen(camera.x, camera.y, screen_width, screen_height, x_pos, y_pos, CASE_SIZE, CASE_SIZE):
+                if True:
                     surface = assets.get(tile.asset)
                     # Si la surface existe, alors on la dessine aux coordonnées calculées plus haut
                     if not (surface is None):
@@ -142,21 +208,9 @@ class Map:
                             assets.draw_centered(screen, surface, (x_pos, y_pos))
                         else:
                             screen.blit(surface, (x_pos, y_pos))
-
-
-#
-#
-#       SPRITES
-#
-#
-
-class SpriteLayer:
-    def __init__(self) -> None:
-        pass
-
-class SpriteMap:
-    def __init__(self) -> None:
-        pass
-
-    def draw(self, frequence: pygame.time.Clock, assets: GameAssets, camera: Camera) -> None:
-        pass
+            
+            # draw entities
+            entities_layer = layer.entities.get_all().items()
+            for _entity_type, entities in entities_layer:
+                for entity in entities:
+                    entity.draw(screen, assets, camera)

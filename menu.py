@@ -21,9 +21,7 @@ class Menu:
 #        self.start_surface = self.start.get_rect()
 
         self.category = 0
-
         self.space_between = 75
-
         self.key_cooldown = 0
 
     def draw(self, display: pygame.Surface):
@@ -53,13 +51,11 @@ class Menu:
             display.blit(new_game_ctg, (floor(display_width // 2) - (new_game_ctg.get_width() // 2), floor(display_height // 4) + self.space_between * 2))
 
         if self.category == 3:
-            new_game_ctg = self.MENU_FONT.render("Succes", True, (240, 0, 0))
+            new_game_ctg = self.MENU_FONT.render("Succès", True, (240, 0, 0))
             display.blit(new_game_ctg, (floor(display_width // 2) - (new_game_ctg.get_width() // 2), floor(display_height // 4) + self.space_between * 3))
         else:
-            new_game_ctg = self.MENU_FONT.render("Succes", True, (255,255,255))
+            new_game_ctg = self.MENU_FONT.render("Succès", True, (255,255,255))
             display.blit(new_game_ctg, (floor(display_width // 2) - (new_game_ctg.get_width() // 2), floor(display_height // 4) + self.space_between * 3))
-
-
 
         if self.category == 4:
             new_game_ctg = self.MENU_FONT.render("Quitter", True, (240, 0, 0))

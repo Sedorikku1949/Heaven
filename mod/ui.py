@@ -4,12 +4,14 @@ from typing import List, Tuple
 from enum import Enum
 
 from mod.assets import Assets
-from mod.sprites import Player, Sprite
-from mod.map import SpriteMap, SpriteLayer
+from mod.entities import Player, Entity
+from mod.map import Map
 
 class UiAssets(Assets):
     def __init__(self) -> None:
-        self.assets = {}
+        self.assets = {
+            "inventory": pygame.image.load("assets/ui/inventory.png").convert_alpha(),
+        }
 
         self.fonts = {
             "RETRO_10": pygame.font.Font("./RetroGaming.ttf", 10),
@@ -79,21 +81,26 @@ class GameMessage(Component):
     def draw(self, game: UiDrawArguments):
         player, assets, screen = game.get()
 
-        text = assets.get_font("RETRO", 20).render(self.message, True, self.style.get_color())
+        text = assets.get_font("RETRO", 20).render(
+            self.message
+                .replace("{fps}", str(floor(player.fps)))
+                .replace("{x}", str(round(player.x)))
+                .replace("{y}", str(round(player.y))),
+            True,
+            self.style.get_color()
+        )
+
         width, height = text.get_size()
 
         screen.blit(
             text,
-            (
-                self.coords[0] + (width // 2),
-                self.coords[1] + (height // 2)
-            )
+            self.coords
         )
 
 
         pass
 
-    def update(self, frequence: pygame.time.Clock, player: Player, sprites: SpriteMap):
+    def update(self, frequence: pygame.time.Clock, player: Player):
         pass
 
 
@@ -102,12 +109,29 @@ class UI:
     def __init__(self) -> None:
         self.components: List[Component] = []
 
-        self.components.append(GameMessage("Hello World!", (50, 50), GameMessageStyle.CLASSIC, ))
+        self.components.append(GameMessage("fps: {fps}; ({x}, {y})", (5, 5), GameMessageStyle.CLASSIC, ))
 
     def draw(self, game: UiDrawArguments) -> None:
         for cmp in self.components:
             cmp.draw(game)
 
-    def update(self, frequence: pygame.time.Clock, player: Player, sprites: SpriteMap):
+        if game.player.inventory_open:
+            # dessiner l'interface de l'inventaire
+            self.draw_inventory(game)
+
+    def draw_inventory(self, game: UiDrawArguments):
+        player, assets, screen = game.get()
+        asset = assets.get("inventory")
+        if asset is None: return;
+        
+        screen.blit(
+            asset,
+            (
+                (screen.get_width() // 2) - (asset.get_width() // 2),
+                (screen.get_height() // 2) - (asset.get_height() // 2) 
+            )
+        )
+
+    def update(self, frequence: pygame.time.Clock, player: Player, map: Map):
         for cmp in self.components:
-            cmp.update(frequence, player, sprites)
+            cmp.update(frequence, player)
