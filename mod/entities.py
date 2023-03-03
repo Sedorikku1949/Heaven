@@ -132,7 +132,7 @@ class Player(Entity):
 
             self.inventory = Inventory()
             self.current_item = WoodSword()
-            self.inventory_open = True # TODO
+            self.inventory_open = False
 
     def get_movement_animation(self) -> str:
         if self.idling or self.inventory_open:

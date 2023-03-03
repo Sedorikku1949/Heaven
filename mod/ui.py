@@ -123,7 +123,16 @@ class UI:
         player, assets, screen = game.get()
         asset = assets.get("inventory")
         if asset is None: return;
-        
+    
+        # On rajoute un fond légèrement noir
+        back_surface = pygame.Surface(screen.get_size())
+        back_surface.set_alpha(128)
+        back_surface.fill((0,0,0))
+
+        screen.blit(back_surface, (0,0))
+
+    
+        # Dessiner l'emplacement de la case où seront les items        
         screen.blit(
             asset,
             (

@@ -1,11 +1,10 @@
-# Ces variables sont très importantes pour le jeux
-DEFAULT_WINDOW_WIDTH = 900
-DEFAULT_WINDOW_HEIGHT = 600
+from enum import Enum
 
 # Définis la taille de chaque entitée/tuile
 CASE_SIZE = 64
+CHECKBOX_SIZE = 42
 
-TICKS_PER_SECONDS = 60
+TICKS_PER_SECONDS = 50
 PLAYER_DIAGONAL_COEFF = 1.5
 # 1.5 car on utilise l'opération suivante:
 # v(n) = n // PLAYER_DIAGONAL_COEFF
@@ -26,3 +25,9 @@ DEFAULT_PLAYER_DEFENSE = 50
 PLAYER_SHIELD_COLOR = (83, 165, 216)
 PLAYER_LIFE_COLOR = (227, 49, 49)
 PLAYER_START_COORDS = (-442, -1228)
+
+class MenuCategories(Enum):
+    NO_ONE = 0
+    OPTIONS = 1
+    COMMANDS = 2
+    SUCCESS = 3
