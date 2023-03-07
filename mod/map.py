@@ -1,30 +1,30 @@
-from enum import Enum
 import pygame
-from math import *
-from typing import List, Tuple
+from typing import List, Dict
+from entities.companion import Companion
 
-from constants import *
-from mod.assets import Assets, GameAssets
-from mod.entities import Entity, SpriteType
+from mod.assets import Assets
+from entities.mod import Entity, EntityType
 from mod.camera import *
+from entities.player import Player
+
 
 class EntitiesContainer:
     def __init__(self):
         self.dict = {}
         # chaque clé sera un type d'entité
 
-    def add(self, type: SpriteType, entity: Entity):
-        if not (type in self.dict.keys()):
-            self.dict[type] = [entity]
+    def add(self, entity_type: EntityType, entity: Entity):
+        if not (entity_type in self.dict.keys()):
+            self.dict[entity_type] = [entity]
         else:
-            self.dict[type].append(entity)
+            self.dict[entity_type].append(entity)
 
-    def get(self, type: SpriteType, coords: Tuple[int, int]) -> Entity | None:
-        if type in self.dict.keys():
-            for ent in self.dict[type]:
+    def get(self, entity_type: EntityType, coords: Tuple[int, int]) -> Entity | None:
+        if entity_type in self.dict.keys():
+            for ent in self.dict[entity_type]:
                 if (ent.x, ent.y) == coords:
                     return ent
-    
+
     def get_all(self) -> dict[List[Entity]]:
         return self.dict
 
@@ -32,6 +32,7 @@ class EntitiesContainer:
 class Tile:
     def __init__(self, asset: str) -> None:
         self.asset = asset
+
 
 class Layer:
     def __init__(self, y: int) -> None:
@@ -42,32 +43,105 @@ class Layer:
     def insert(self, coords: Tuple[int, int], tile: Tile):
         if not (coords in self.map.keys()):
             self.map[coords] = tile
-    
+
     def replace(self, coords: Tuple[int, int], tile: Tile):
-        if (coords in self.map.keys()):
+        if coords in self.map.keys():
             self.map[coords] = tile
-    
+
     def add_or_replace(self, coords: Tuple[int, int], tile: Tile):
         self.map[coords] = tile
 
     def remove(self, coords: Tuple[int, int]):
         del self.map[coords]
-    
+
     def try_remove(self, coords: Tuple[int, int]):
         if coords in self.map.keys():
             self.remove(coords)
 
-class Zones(Enum):
+
+class ZoneType(Enum):
     TUTO = 0
+
+
+class Zone:
+    def __init__(self, map_background: pygame.Surface, layers: List[Tuple[int, pygame.Surface]] = [],
+                 collisions: List[Tuple[int, int, int, int]] = [], entities: List[Entity] = []) -> None:
+        self.map = map_background
+        self.layers = layers
+        self.layers.sort(key=lambda l: l[0])
+        self.collisions = collisions
+        self.entities = entities
+
+    def draw(self, screen: pygame.Surface, camera: Camera, player: Player, zone_decals: Tuple[int, int], assets: Assets, map, companion: Companion) -> None:
+        coords = (
+            camera.x + (zone_decals[0] // 2),
+            camera.y + (zone_decals[1] // 2)
+        )
+
+        # Dessin de la carte en fond
+        screen.blit(self.map, coords)
+
+        player_drawn = False
+
+        for i, layer in self.layers:
+            if (not player_drawn) and player.layer == i:
+                player.draw(screen, assets, camera, map)
+                companion.draw(screen, assets, camera, map)
+                player_drawn = True
+            screen.blit(layer, coords)
+
+        if not player_drawn:
+            player.draw(screen, assets, camera, map)
+            companion.draw(screen, assets, camera, map)
+
+        player_x = (screen.get_width() // 2)
+        player_y = (screen.get_height() // 2)
+
+        player.draw_remaining_defense(player_x, player_y, screen, (CASE_SIZE // 2))
+        player.draw_remaining_life(player_x, player_y, screen, (CASE_SIZE // 2))
+
+        player.draw_current_item(screen, assets)
+
 
 class Map:
     def __init__(self) -> None:
         self.layers = {}
-        self.centered_assets = [] #["rock1", "rock2"] # Place name of assets wich need to be drawed centered from the coordinates given
+        self.centered_assets = []  # ["rock1", "rock2"] # Place name of assets wich need to be drawed centered from the coordinates given
 
-        self.actual_zone = Zones.TUTO
+        self.zones: Dict[ZoneType, Zone] = {
+            ZoneType.TUTO: Zone(
+                pygame.transform.scale(pygame.image.load("assets/map/tuto_back_zone.png"), (400 * 4, 400 * 4)).convert_alpha(),
+                [
+                    (0, pygame.transform.scale(pygame.image.load("assets/map/tuto_top_zone.png"), (400 * 4, 400 * 4)).convert_alpha())
+                ],
+                collisions=[
+                    # Murs
+                    (0, 0, CASE_SIZE, CASE_SIZE * 25), # Gauche
+                    (0, 0, CASE_SIZE * 8, CASE_SIZE), # Haut (partie gauche)
+                    (-(CASE_SIZE * 12), 0, CASE_SIZE * 13, CASE_SIZE), # Haut (partie droite)
+                    (-(CASE_SIZE * 24), 0, CASE_SIZE, CASE_SIZE * 25), # Droite
+                    (-(CASE_SIZE), -(CASE_SIZE * 24), CASE_SIZE * 25, CASE_SIZE), # Bas
+
+                    # Cailloux
+                    (-(CASE_SIZE * 6) - 25, -(CASE_SIZE * 12.5), CASE_SIZE + 10, CASE_SIZE * 0.5), # Gauche Haut
+                    (-(CASE_SIZE * 6) - 25, -(CASE_SIZE * 17.5) - 7, CASE_SIZE + 10, CASE_SIZE * 0.5), # Gauche Bas
+                    (-(CASE_SIZE * 15) - 25, -(CASE_SIZE * 19.5) - 7, CASE_SIZE + 10, CASE_SIZE * 0.5), # Bas (ou: Droite bas)
+                    (-(CASE_SIZE * 17) - 25, -(CASE_SIZE * 13.5) - 7, CASE_SIZE + 10, CASE_SIZE * 0.5), # Droite Milieu
+                    (-(CASE_SIZE * 12) - 25, -(CASE_SIZE * 7.5) - 7, CASE_SIZE + 10, CASE_SIZE * 0.5), # Milieu Haut
+
+                    # Troncs
+                    (-(CASE_SIZE * 3) - (CASE_SIZE * 0.75), -(CASE_SIZE * 16), CASE_SIZE * 0.5, (CASE_SIZE // 4) - 10), # Droite Milieu
+                    (-(CASE_SIZE * 4) - (CASE_SIZE * 0.75), -(CASE_SIZE * 5), CASE_SIZE * 0.5, (CASE_SIZE // 4) - 10), # Haut coin Gauche
+                    (-(CASE_SIZE * 6) - (CASE_SIZE * 0.75), -(CASE_SIZE * 10), CASE_SIZE * 0.5, (CASE_SIZE // 4) - 10), # Gauche Milieu
+                    (-(CASE_SIZE * 22) - (CASE_SIZE * 0.75), -(CASE_SIZE * 13), CASE_SIZE * 0.5, (CASE_SIZE // 4) - 10), # Droite extrème Milieu
+                ],
+                entities=[]
+            )
+        }
+
+        self.actual_zone: Zone = self.zones[ZoneType.TUTO]
         self.zone_decals = ()
-        self.DEFAULT_ZONE_DECALSs = ()
+        self.DEFAULT_ZONE_DECALS = ()
 
     def add_layer(self, y: int) -> None:
         if not (y in self.layers.keys()):
@@ -77,16 +151,16 @@ class Map:
         if y in self.layers.keys():
             del self.layers[y]
 
-    def get(self, y: int) -> Layer: # | None
+    def get(self, y: int) -> Layer:  # | None
         if y in self.layers.keys():
             return self.layers[y]
 
-    def get_layers(self) : # -> list[Layer]
+    def get_layers(self):  # -> list[Layer]
         l = list(self.layers.values())
         l.sort()
         return l
 
-    def get_available_layers(self): # list[Layer]
+    def get_available_layers(self):  # list[Layer]
         l = list(self.layers.values())
         l.sort(key=lambda l: l.y)
         return l
@@ -95,23 +169,22 @@ class Map:
         if layer in self.layers.keys():
             return self.layers[layer].insert(coords, tile)
 
-
-    def add_entity(self, layer: int, type: SpriteType, entity: Entity):
+    def add_entity(self, layer: int, type: EntityType, entity: Entity):
         if layer in self.layers.keys():
             return self.layers[layer].entities.add(type, entity)
-            
+
     def replace_tile(self, layer: int, coords: Tuple[int, int], tile: Tile):
         if layer in self.layers.keys():
             return self.layers[layer].replace(coords, tile)
-            
+
     def add_or_replace(self, layer: int, coords: Tuple[int, int], tile: Tile):
         if layer in self.layers.keys():
             return self.layers[layer].replace(coords, tile)
-            
+
     def remove(self, layer: int, coords: Tuple[int, int]):
         if layer in self.layers.keys():
             return self.layers[layer].replace(coords)
-            
+
     def try_remove(self, layer: int, coords: Tuple[int, int]):
         if layer in self.layers.keys():
             return self.layers[layer].replace(coords)
@@ -141,43 +214,31 @@ class Map:
                     2
                 )
 
+    # def draw_zone(self, screen: pygame.Surface, assets: Assets, camera: Camera) -> None:
+    #    asset = None
+    #    if self.actual_zone == Zones.TUTO:
+    #        asset = assets.get("map_tuto")
+    #    
+    #    if asset is None: return;
 
-    def is_on_screen(self, camera_x, camera_y, screen_width, screen_height, x_pos, y_pos, image_width, image_height):
-        left_bound = camera_x - screen_width / 2
-        right_bound = camera_x + screen_width / 2
-        top_bound = camera_y + screen_height / 2
-        bottom_found = camera_y + screen_height / 2
+    #    screen.blit(
+    #        asset,
+    #        (
+    #            camera.x + (self.zone_decals[0] // 2),
+    #            camera.y + (self.zone_decals[1] // 2) 
+    #        )
+    #    )
 
-        left_image = x_pos - image_width / 2
-        right_image = x_pos + image_width / 2
-        top_image = y_pos + image_height / 2
-        bottom_image = y_pos + image_height / 2
+    def draw(self, screen: pygame.Surface, assets: Assets, camera: Camera, player: Player, companion: Companion) -> None:
+        # self.draw_grid(screen, camera)
+        # self.draw_zone(screen, assets, camera)
 
-        return (right_image > left_bound) and (left_image < right_bound) and (bottom_image > top_bound) and (top_image < bottom_found)
+        self.actual_zone.draw(screen, camera, player, self.zone_decals, assets, self, companion)
+        return
 
-
-    def draw_zone(self, screen: pygame.Surface, assets: Assets, camera: Camera) -> None:
-        asset = None
-        if self.actual_zone == Zones.TUTO:
-            asset = assets.get("map_tuto")
-        
-        if asset is None: return;
-
-        screen.blit(
-            asset,
-            (
-                camera.x + (self.zone_decals[0] // 2),
-                camera.y + (self.zone_decals[1] // 2) 
-            )
-        )
-
-    def draw(self, screen: pygame.Surface, assets: Assets, camera: Camera) -> None:
-        self.draw_grid(screen, camera)
-        self.draw_zone(screen, assets, camera)
-        
         # test
-        #rock = assets.get("rock1")
-        #screen.blit(rock, (32, 32))
+        # rock = assets.get("rock1")
+        # screen.blit(rock, (32, 32))
         screen_width, screen_height = screen.get_size()
 
         for layer in self.get_available_layers():
@@ -195,20 +256,21 @@ class Map:
                 #  y_encadrement = [camera.y, camera.y + (screen_height // 2)]
 
                 # Si la surface est clairement en dehors de l'écran, on ne dessine pas pour optimiser les performances
-                #if (y > y_encadrement[0] and y < y_encadrement[1]) and (x > x_encadrement[0] and x < x_encadrement[1]):
+                # if (y > y_encadrement[0] and y < y_encadrement[1]) and (x > x_encadrement[0] and x < x_encadrement[1]):
                 # if  self.is_on_screen(camera.x, camera.y, screen_width, screen_height, x_pos, y_pos, CASE_SIZE, CASE_SIZE):
                 if True:
                     surface = assets.get(tile.asset)
                     # Si la surface existe, alors on la dessine aux coordonnées calculées plus haut
                     if not (surface is None):
                         if DRAW_DEBUG_BACKGROUND:
-                            pygame.draw.rect(screen, (0,255,0), (x_pos, y_pos, surface.get_width(), surface.get_height()))
-                            
+                            pygame.draw.rect(screen, (0, 255, 0),
+                                             (x_pos, y_pos, surface.get_width(), surface.get_height()))
+
                         if tile.asset in self.centered_assets:
                             assets.draw_centered(screen, surface, (x_pos, y_pos))
                         else:
                             screen.blit(surface, (x_pos, y_pos))
-            
+
             # draw entities
             entities_layer = layer.entities.get_all().items()
             for _entity_type, entities in entities_layer:

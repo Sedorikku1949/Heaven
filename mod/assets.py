@@ -29,18 +29,20 @@ IDS_ASSETS = {
     408: "grass_33_9",
 }
 
+
 class Assets:
-    """Store all assets that can be drawed in the game"""
+    """Store all assets that can be drawn in the game"""
+
     def __init__(self) -> None:
         """Drink your coffee while pygame is loading each assets, nothing to do but to wait"""
         self.assets = {}
 
-    def get(self, key: str) -> pygame.Surface: # | None
+    def get(self, key: str) -> pygame.Surface:  # | None
         """Get an asset from a key"""
         if key in self.assets.keys():
             return self.assets[key]
 
-    #def draw_centered(self, target: pygame.Surface, surface: pygame.Surface, coords: Tuple[int, int]):
+    # def draw_centered(self, target: pygame.Surface, surface: pygame.Surface, coords: Tuple[int, int]):
     #    """
     #    Allow game draw handler to draw an asset centered by the coordinates given (with multiple assets size)
     #    """
@@ -53,58 +55,56 @@ class Assets:
     #        ) # (x, y)
     #    )
 
+
 class GameAssets(Assets):
     def __init__(self) -> None:
         super().__init__()
         self.assets = {
-            "rock1": pygame.image.load("design/game/objects/08.png", "rock1").convert_alpha(), # "assets/rock1"
-            "rock2": pygame.image.load("design/game/objects/00.png", "rock2").convert_alpha(), # "assets/rock2"
+            "rock1": pygame.image.load("design/game/objects/08.png", "rock1").convert_alpha(),  # "assets/rock1"
+            "rock2": pygame.image.load("design/game/objects/00.png", "rock2").convert_alpha(),  # "assets/rock2"
             "test_grass": pygame.image.load("design/game/test/5.png", "test_grass").convert_alpha(),
             "test_spirit": pygame.image.load("design/game/monsters/spirit/idle/0.png").convert_alpha(),
-            # "grass_1_5": pygame.transform.scale(pygame.image.load("assets/map/image1x5.png"), (CASE_SIZE, CASE_SIZE)).convert_alpha(),
-            # "grass_1_6": pygame.transform.scale(pygame.image.load("assets/map/image1x6.png"), (CASE_SIZE, CASE_SIZE)).convert_alpha(),
-            # "grass_10_3": pygame.transform.scale(pygame.image.load("assets/map/image3x10.png"), (CASE_SIZE, CASE_SIZE)).convert_alpha(),
-            # "grass_15_3": pygame.transform.scale(pygame.image.load("assets/map/image3x15.png"), (CASE_SIZE, CASE_SIZE)).convert_alpha(),
-            # "grass_16_3": pygame.transform.scale(pygame.image.load("assets/map/image3x16.png"), (CASE_SIZE, CASE_SIZE)).convert_alpha(),
-            # "grass_34_9": pygame.transform.scale(pygame.image.load("assets/map/image34x9.png"), (CASE_SIZE, CASE_SIZE)).convert_alpha(),
-            # "grass_34_10": pygame.transform.scale(pygame.image.load("assets/map/image34x10.png"), (CASE_SIZE, CASE_SIZE)).convert_alpha(),
-            # "grass_33_9": pygame.transform.scale(pygame.image.load("assets/map/image33x9.png"), (CASE_SIZE, CASE_SIZE)).convert_alpha(),
-            
+
+            # Companion:
+            "companion_idle_0": pygame.transform.scale(pygame.image.load("design/game/monsters/spirit/idle/0.png"), (CASE_SIZE, CASE_SIZE)).convert_alpha(),
+            "companion_idle_1": pygame.transform.scale(pygame.image.load("design/game/monsters/spirit/idle/1.png"), (CASE_SIZE, CASE_SIZE)).convert_alpha(),
+            "companion_idle_2": pygame.transform.scale(pygame.image.load("design/game/monsters/spirit/idle/2.png"), (CASE_SIZE, CASE_SIZE)).convert_alpha(),
+            "companion_idle_3": pygame.transform.scale(pygame.image.load("design/game/monsters/spirit/idle/3.png"), (CASE_SIZE, CASE_SIZE)).convert_alpha(),
+
             # UI
             "in_hand": pygame.transform.scale(pygame.image.load("assets/in_hand.png"), (124, 124)).convert_alpha(),
             "item_wood_sword": pygame.transform.scale(pygame.image.load("assets/items/wood_sword.png"), (CASE_SIZE, CASE_SIZE)).convert_alpha(),
 
             # Map:
-            "map_tuto": pygame.transform.scale(pygame.image.load("carte.png"), (400*4, 400*4)),
-
+            "map_tuto": pygame.transform.scale(pygame.image.load("carte.png"), (400 * 4, 400 * 4)).convert_alpha(),
 
             # Player animation with movements
 
-            "player_down_idle": pygame.image.load("design/game/player/down_idle/idle_down.png", "player_down_idle").convert_alpha(), # "assets/player.png"
+            "player_down_idle": pygame.image.load("design/game/player/down_idle/idle_down.png", "player_down_idle").convert_alpha(),  # "assets/player.png"
             "player_down_0": pygame.image.load("design/game/player/down/down_0.png", "player_down_0").convert_alpha(),
             "player_down_1": pygame.image.load("design/game/player/down/down_1.png", "player_down_1").convert_alpha(),
             "player_down_2": pygame.image.load("design/game/player/down/down_2.png", "player_down_2").convert_alpha(),
             "player_down_3": pygame.image.load("design/game/player/down/down_3.png", "player_down_3").convert_alpha(),
-            
+
             "player_left_idle": pygame.image.load("design/game/player/left_idle/idle_left.png", "player_down_idle").convert_alpha(),
             "player_left_0": pygame.image.load("design/game/player/left/left_0.png", "player_left_0").convert_alpha(),
             "player_left_1": pygame.image.load("design/game/player/left/left_1.png", "player_left_1").convert_alpha(),
             "player_left_2": pygame.image.load("design/game/player/left/left_2.png", "player_left_2").convert_alpha(),
             "player_left_3": pygame.image.load("design/game/player/left/left_3.png", "player_left_3").convert_alpha(),
-            
-            "player_right_idle": pygame.image.load("design/game/player/right_idle/idle_right.png", "player_right_idle").convert_alpha(),
+
+            "player_right_idle": pygame.image.load("design/game/player/right_idle/idle_right.png","player_right_idle").convert_alpha(),
             "player_right_0": pygame.image.load("design/game/player/right/right_0.png", "player_right_0").convert_alpha(),
             "player_right_1": pygame.image.load("design/game/player/right/right_1.png", "player_right_1").convert_alpha(),
             "player_right_2": pygame.image.load("design/game/player/right/right_2.png", "player_right_2").convert_alpha(),
             "player_right_3": pygame.image.load("design/game/player/right/right_3.png", "player_right_3").convert_alpha(),
-            
+
             "player_up_idle": pygame.image.load("design/game/player/up_idle/idle_up.png", "player_up_idle").convert_alpha(),
             "player_up_0": pygame.image.load("design/game/player/up/up_0.png", "player_up_0").convert_alpha(),
             "player_up_1": pygame.image.load("design/game/player/up/up_1.png", "player_up_1").convert_alpha(),
             "player_up_2": pygame.image.load("design/game/player/up/up_2.png", "player_up_2").convert_alpha(),
             "player_up_3": pygame.image.load("design/game/player/up/up_3.png", "player_up_3").convert_alpha(),
         }
-    
+
     def load_images(self):
         pass
         #  folder_path = "assets/map"

@@ -2,14 +2,21 @@ from enum import Enum
 
 # Définis la taille de chaque entitée/tuile
 CASE_SIZE = 64
-CHECKBOX_SIZE = 42
+CHECKBOX_SIZE = 37
 
-TICKS_PER_SECONDS = 50
-PLAYER_DIAGONAL_COEFF = 1.5
+VSYNC = True
+
+TICKS_PER_SECONDS = 256
+UPDATE_TICKS = 30
+
+PLAYER_DIAGONAL_COEFF = 1
 # 1.5 car on utilise l'opération suivante:
 # v(n) = n // PLAYER_DIAGONAL_COEFF
 # où n ∈ ]-∞; +∞[ et PLAYER_DIAGONAL_COEFF un nombre réel non nul
 
+PLAYER_DEFAULT_COORDS = (0,0)
+DEFAULT_PLAYER_SPEED = 3.0
+SPEED_NORMALIZE_SEUIL = 2.0
 
 
 # Ces variables servent à dessiner, respectivement, une grille et un fond pour les tuiles
@@ -25,6 +32,11 @@ DEFAULT_PLAYER_DEFENSE = 50
 PLAYER_SHIELD_COLOR = (83, 165, 216)
 PLAYER_LIFE_COLOR = (227, 49, 49)
 PLAYER_START_COORDS = (-442, -1228)
+
+COMPANION_SPEED = 5
+
+COMPANION_DISTANCE_FROM_PLAYER = [-(CASE_SIZE * 1), CASE_SIZE * 1]
+DEFAULT_COMPANION_DISTANCE_FROM_PLAYER = [-(CASE_SIZE * 1), CASE_SIZE * 1]
 
 class MenuCategories(Enum):
     NO_ONE = 0

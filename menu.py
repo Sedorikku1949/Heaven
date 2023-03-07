@@ -3,17 +3,18 @@ from math import *
 from constants import *
 from enum import Enum
 from categories.options import options
-from mod.assets import Assets
+from mod.utils import fps_coeff
 
 
 class GameStatus(Enum):
     MENU = 0
     GAME = 1
 
+
 class Menu:
     def __init__(self):
         self.MENU_FONT = pygame.font.Font("./RetroGaming.ttf", 40)
-        
+
         self.text = self.MENU_FONT.render("Menu", True, (240, 240, 240))
         self.text_surface = self.text.get_rect()
 
@@ -31,7 +32,7 @@ class Menu:
 
     def draw_background(self, screen: pygame.Surface):
         surface = pygame.transform.scale(self.background, screen.get_size())
-        screen.blit(surface, (0,0))
+        screen.blit(surface, (0, 0))
 
     def draw(self, screen: pygame.Surface):
         # screen.fill("#1c1e26")
@@ -39,48 +40,57 @@ class Menu:
 
         if self.ctg_open == MenuCategories.OPTIONS:
             return options.draw(screen)
-        #elif self.ctg_open == MenuCategories.COMMANDS:
+        # elif self.ctg_open == MenuCategories.COMMANDS:
         #    return commands.draw(screen)
-        #elif self.ctg_open == MenuCategories.SUCCES:
+        # elif self.ctg_open == MenuCategories.SUCCES:
         #    return success.draw(screen)
 
         (display_width, display_height) = screen.get_size()
 
         if self.category == 0:
             new_game_ctg = self.MENU_FONT.render("Nouvelle partie", True, (240, 0, 0))
-            screen.blit(new_game_ctg, (floor(display_width // 2) - (new_game_ctg.get_width() // 2), floor(display_height // 4)))
+            screen.blit(new_game_ctg,
+                        (floor(display_width // 2) - (new_game_ctg.get_width() // 2), floor(display_height // 4)))
         else:
             new_game_ctg = self.MENU_FONT.render("Nouvelle partie", True, (0, 0, 0))
-            screen.blit(new_game_ctg, (floor(display_width // 2) - (new_game_ctg.get_width() // 2), floor(display_height // 4)))
+            screen.blit(new_game_ctg,
+                        (floor(display_width // 2) - (new_game_ctg.get_width() // 2), floor(display_height // 4)))
 
         if self.category == 1:
             new_game_ctg = self.MENU_FONT.render("Charger une partie", True, (240, 0, 0))
-            screen.blit(new_game_ctg, (floor(display_width // 2) - (new_game_ctg.get_width() // 2), floor(display_height // 4) + self.space_between))
+            screen.blit(new_game_ctg, (floor(display_width // 2) - (new_game_ctg.get_width() // 2),
+                                       floor(display_height // 4) + self.space_between))
         else:
             new_game_ctg = self.MENU_FONT.render("Charger une partie", True, (0, 0, 0))
-            screen.blit(new_game_ctg, (floor(display_width // 2) - (new_game_ctg.get_width() // 2), floor(display_height // 4) + self.space_between))
+            screen.blit(new_game_ctg, (floor(display_width // 2) - (new_game_ctg.get_width() // 2),
+                                       floor(display_height // 4) + self.space_between))
 
         if self.category == 2:
             new_game_ctg = self.MENU_FONT.render("Options", True, (240, 0, 0))
-            screen.blit(new_game_ctg, (floor(display_width // 2) - (new_game_ctg.get_width() // 2), floor(display_height // 4) + self.space_between * 2))
+            screen.blit(new_game_ctg, (floor(display_width // 2) - (new_game_ctg.get_width() // 2),
+                                       floor(display_height // 4) + self.space_between * 2))
         else:
             new_game_ctg = self.MENU_FONT.render("Options", True, (0, 0, 0))
-            screen.blit(new_game_ctg, (floor(display_width // 2) - (new_game_ctg.get_width() // 2), floor(display_height // 4) + self.space_between * 2))
+            screen.blit(new_game_ctg, (floor(display_width // 2) - (new_game_ctg.get_width() // 2),
+                                       floor(display_height // 4) + self.space_between * 2))
 
         if self.category == 3:
             new_game_ctg = self.MENU_FONT.render("Succès", True, (240, 0, 0))
-            screen.blit(new_game_ctg, (floor(display_width // 2) - (new_game_ctg.get_width() // 2), floor(display_height // 4) + self.space_between * 3))
+            screen.blit(new_game_ctg, (floor(display_width // 2) - (new_game_ctg.get_width() // 2),
+                                       floor(display_height // 4) + self.space_between * 3))
         else:
             new_game_ctg = self.MENU_FONT.render("Succès", True, (0, 0, 0))
-            screen.blit(new_game_ctg, (floor(display_width // 2) - (new_game_ctg.get_width() // 2), floor(display_height // 4) + self.space_between * 3))
+            screen.blit(new_game_ctg, (floor(display_width // 2) - (new_game_ctg.get_width() // 2),
+                                       floor(display_height // 4) + self.space_between * 3))
 
         if self.category == 4:
             new_game_ctg = self.MENU_FONT.render("Quitter", True, (240, 0, 0))
-            screen.blit(new_game_ctg, (floor(display_width // 2) - (new_game_ctg.get_width() // 2), floor(display_height // 4) + self.space_between * 4))
+            screen.blit(new_game_ctg, (floor(display_width // 2) - (new_game_ctg.get_width() // 2),
+                                       floor(display_height // 4) + self.space_between * 4))
         else:
             new_game_ctg = self.MENU_FONT.render("Quitter", True, (0, 0, 0))
-            screen.blit(new_game_ctg, (floor(display_width // 2) - (new_game_ctg.get_width() // 2), floor(display_height // 4) + self.space_between * 4))
-
+            screen.blit(new_game_ctg, (floor(display_width // 2) - (new_game_ctg.get_width() // 2),
+                                       floor(display_height // 4) + self.space_between * 4))
 
     def update(self, frequence: pygame.time.Clock):
 
@@ -90,14 +100,13 @@ class Menu:
         # Get keyboard keys
         keys = pygame.key.get_pressed()
         if self.key_cooldown <= 0:
-            self.key_cooldown = 5
+            self.key_cooldown = 13
             if keys[pygame.K_UP] or keys[pygame.K_z]:
-                self.category = ((self.category - 1 ) % 5)
+                self.category = ((self.category - 1) % 5)
             elif keys[pygame.K_DOWN] or keys[pygame.K_s]:
                 self.category = ((self.category + 1) % 5)
         elif self.key_cooldown > 0:
-            self.key_cooldown -= 1
-
+            self.key_cooldown -= fps_coeff(frequence.get_fps())
 
     #
     #

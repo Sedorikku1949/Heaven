@@ -1,9 +1,13 @@
+from entities.companion import Companion
 from menu import GameStatus
+from mod.assets import GameAssets
 from mod.ui import *
-from mod.entities import *
+from entities.mod import *
 from mod.map import *
 from mod.camera import *
 from mod.save import convert_tiled_to_map, open_file
+from mod.inventory import Wood
+from mod.utils import determine_collision_move, fps_coeff
 
 
 #
@@ -24,7 +28,7 @@ class Game:
 
         # resizing window
         self.map.zone_decals = screen.get_size()
-        self.map.DEFAULT_ZONE_DECALSs = screen.get_size()
+        self.map.DEFAULT_ZONE_DECALS = screen.get_size()
 
         # TEST
 
@@ -41,6 +45,7 @@ class Game:
 
         # Blep
         self.player = Player()
+        self.companion = Companion(self.player.x - (CASE_SIZE * 0.86), self.player.y - (CASE_SIZE * 0.86))
 
         self.player.inventory.add_item(Wood())
 
@@ -49,9 +54,10 @@ class Game:
         self.ui = UI()
 
         # Menu affiché quand on appuie sur [ECHAP]
-        self.is_escaped = True
+        self.is_escaped = False
         self.ESC_FONT = pygame.font.Font("./RetroGaming.ttf", 40)
         self.PAUSE_ESC_FONT = pygame.font.Font("./RetroGaming.ttf", 25)
+        self.IN_DEV = pygame.font.Font("./RetroGaming.ttf", 15)
         self.esc_menu_ctg = 0
         self.space_between = 75
         self.key_cooldown = 0
@@ -130,11 +136,16 @@ class Game:
     def draw(self, screen: pygame.Surface, fps: int) -> None:
         screen.fill((0, 0, 0))
 
-        self.map.draw(screen, self.assets, self.camera)
-        self.player.draw(screen, self.assets, self.camera, self.map)
+        self.map.draw(screen, self.assets, self.camera, self.player, self.companion)
+        # self.player.draw(screen, self.assets, self.camera, self.map)
         self.ui.draw(UiDrawArguments(self.player, self.ui_assets, screen))
 
         self.draw_esc_menu(screen, fps)
+
+        screen.blit(
+            self.IN_DEV.render("En développement...", True, (255, 255, 255)),
+            (20, screen.get_height() - 35)
+        )
 
     def update(self, frequence: pygame.time.Clock) -> None:
         self.player.x = self.camera.x
@@ -143,18 +154,19 @@ class Game:
         if not self.is_escaped: self.movements(frequence)
 
         self.player.update(frequence)
+        self.companion.update(frequence, self.player, self.camera, self.map)
         self.ui.update(frequence, self.player, self.map)
 
         
         keys = pygame.key.get_pressed()
         if self.key_cooldown <= 0:
-            self.key_cooldown = 4
+            self.key_cooldown = 13
             if keys[pygame.K_UP] or keys[pygame.K_z]:
                 self.esc_menu_ctg = ((self.esc_menu_ctg - 1 ) % 5)
             elif keys[pygame.K_DOWN] or keys[pygame.K_s]:
                 self.esc_menu_ctg = ((self.esc_menu_ctg + 1) % 5)
         elif self.key_cooldown > 0:
-            self.key_cooldown -= 1
+            self.key_cooldown -= fps_coeff(frequence.get_fps())
 
     def key_down(self, event: pygame.event.Event, engine) -> None:
         if event.key == pygame.K_ESCAPE:
@@ -163,10 +175,10 @@ class Game:
             self.player.inventory_open = not self.player.inventory_open
         
         elif ((event.key == pygame.K_UP) or (event.key == pygame.K_z)) and self.is_escaped:
-            self.key_cooldown = 4
+            self.key_cooldown = 13
             self.esc_menu_ctg = ((self.esc_menu_ctg - 1 ) % 5)
         elif ((event.key == pygame.K_DOWN) or (event.key == pygame.K_s)) and self.is_escaped:
-            self.key_cooldown = 4
+            self.key_cooldown = 13
             self.esc_menu_ctg = ((self.esc_menu_ctg + 1) % 5)
         
         elif ((event.key == pygame.K_SPACE) or (event.key == pygame.K_RETURN)) and self.is_escaped:
@@ -182,33 +194,91 @@ class Game:
                 # retour en jeux
                 self.is_escaped = not self.is_escaped
 
+    def manage_collisions(self, vec: Tuple[int, int], movement: Movement) -> Tuple[int, int]:
+        for collision in self.map.actual_zone.collisions:
+            top_x = collision[0] + CASE_SIZE
+            top_y = collision[1] + CASE_SIZE
+            bottom_x = -(-top_x + collision[2])
+            bottom_y = -(-top_y + collision[3])
+
+            x = self.player.x + vec[0]
+            y = self.player.y + vec[1]
+        
+            if (top_x >= x) and (top_y >= y) and (bottom_x <= x + CASE_SIZE) and (bottom_y <= y + CASE_SIZE):
+                if movement in [Movement.UP, Movement.UP_LEFT, Movement.UP_RIGHT, Movement.BOTTOM, Movement.BOTTOM_LEFT, Movement.BOTTOM_RIGHT]:
+                    vec = (vec[0], 0)
+                if movement in [Movement.RIGHT, Movement.UP_RIGHT, Movement.UP_LEFT, Movement.LEFT, Movement.BOTTOM_LEFT, Movement.BOTTOM_RIGHT]:
+                    vec = (0, vec[1])
+
+                # Check x & y
+                x_check = determine_collision_move(movement, 0)
+                if (x_check == movement):
+                    return (0,0)
+                elif not(x_check is None):
+                    vec = (0, vec[1])
+                y_check = determine_collision_move(movement, 1)
+                if (y_check == movement):
+                    return (0,0)
+                elif not(y_check is None):
+                    vec = (vec[0], 0)
+
+        return vec
+
     def movements(self, frequence: pygame.time.Clock) -> None:
         keys = pygame.key.get_pressed()
 
         # On vérifie chaque touche (z, q, s, d) pour connaitre le mouvement précis
-        if keys[pygame.K_z] and (
-                (not (keys[pygame.K_q] or keys[pygame.K_d])) or (keys[pygame.K_q] and keys[pygame.K_d])):
-            # move only up                (x,                 y)
-            self.player.move(Movement.UP, (0, self.camera.speed), self.camera, frequence.get_fps())
+
+        vec = (0,0)
+        movement = self.player.movement
+
+        if keys[pygame.K_s] and keys[pygame.K_q] and (not keys[pygame.K_d]):
+            # move bottom left
+            vec = (self.camera.speed // PLAYER_DIAGONAL_COEFF, -(self.camera.speed // PLAYER_DIAGONAL_COEFF))
+            movement = Movement.BOTTOM_LEFT
+        elif keys[pygame.K_s] and keys[pygame.K_d] and (not keys[pygame.K_q]):
+            # move bottom right
+            vec = (-(self.camera.speed // PLAYER_DIAGONAL_COEFF), -(self.camera.speed // PLAYER_DIAGONAL_COEFF))
+            movement = Movement.BOTTOM_RIGHT
         elif keys[pygame.K_z] and keys[pygame.K_q] and (not keys[pygame.K_d]):
             # move up left
-            self.player.move(Movement.UP_LEFT, (self.camera.speed // PLAYER_DIAGONAL_COEFF, self.camera.speed // PLAYER_DIAGONAL_COEFF), self.camera, frequence.get_fps())
-        elif keys[pygame.K_z] and (not keys[pygame.K_q]) and keys[pygame.K_d]:
+            vec = (self.camera.speed // PLAYER_DIAGONAL_COEFF, self.camera.speed // PLAYER_DIAGONAL_COEFF)
+            movement = Movement.UP_LEFT
+        elif keys[pygame.K_z] and keys[pygame.K_d] and (not keys[pygame.K_q]):
             # move up right
-            self.player.move(Movement.UP_RIGHT, (-self.camera.speed // PLAYER_DIAGONAL_COEFF, self.camera.speed // PLAYER_DIAGONAL_COEFF), self.camera, frequence.get_fps())
+            vec = (-(self.camera.speed // PLAYER_DIAGONAL_COEFF), self.camera.speed // PLAYER_DIAGONAL_COEFF)
+            movement = Movement.UP_RIGHT
+        elif keys[pygame.K_z] and ((not (keys[pygame.K_q] or keys[pygame.K_d])) or (keys[pygame.K_q] and keys[pygame.K_d])):
+            # move only up
+            vec = (0, self.camera.speed)
+            movement = Movement.UP
         elif keys[pygame.K_q] and not (keys[pygame.K_z] or keys[pygame.K_s]):
             # move only left
-            self.player.move(Movement.LEFT, (self.camera.speed, 0), self.camera, frequence.get_fps())
+            vec = (self.camera.speed, 0)
+            movement = Movement.LEFT
         elif keys[pygame.K_d] and not (keys[pygame.K_z] or keys[pygame.K_s]):
             # move only right
-            self.player.move(Movement.RIGHT, (-self.camera.speed, 0), self.camera, frequence.get_fps())
-        elif keys[pygame.K_s] and (
-                (not (keys[pygame.K_q] or keys[pygame.K_d])) or (keys[pygame.K_q] and keys[pygame.K_d])):
+            vec = (-self.camera.speed, 0)
+            movement = Movement.RIGHT
+        elif keys[pygame.K_s] and ((not (keys[pygame.K_q] or keys[pygame.K_d])) or (keys[pygame.K_q] and keys[pygame.K_d])):
             # move only bottom
-            self.player.move(Movement.BOTTOM, (0, -self.camera.speed), self.camera, frequence.get_fps())
-        elif keys[pygame.K_s] and keys[pygame.K_q] and (not keys[pygame.K_d]):
-            # move bottom left
-            self.player.move(Movement.BOTTOM_LEFT, (self.camera.speed // PLAYER_DIAGONAL_COEFF, -self.camera.speed // PLAYER_DIAGONAL_COEFF), self.camera, frequence.get_fps())
-        elif keys[pygame.K_s] and (not keys[pygame.K_q]) and keys[pygame.K_d]:
-            # move bottom right
-            self.player.move(Movement.BOTTOM_RIGHT, (-self.camera.speed // PLAYER_DIAGONAL_COEFF, -self.camera.speed // PLAYER_DIAGONAL_COEFF), self.camera, frequence.get_fps())
+            vec = (0, -self.camera.speed)
+            movement = Movement.BOTTOM
+
+        # Il n'y a aucun changement de coordonnées
+        if (self.player.movement == movement) and (vec == (0,0)): return
+
+        # Normaliser vecteurs
+        total_speed = sqrt(vec[0] ** 2 + vec[1] ** 2)
+        if total_speed > SPEED_NORMALIZE_SEUIL:
+            normalization_coeff = SPEED_NORMALIZE_SEUIL / total_speed
+            vec = (vec[0] * normalization_coeff, vec[1] * normalization_coeff)
+
+        # Move player based on his movement
+        decompose_x = determine_collision_move(movement, 0)
+        if not(decompose_x is None):
+            self.player.move(movement, self.manage_collisions((vec[0], 0), movement), self.camera, frequence.get_fps())
+
+        decompose_y = determine_collision_move(movement, 1)
+        if not(decompose_y is None):
+            self.player.move(movement, self.manage_collisions((0, vec[1]), movement), self.camera, frequence.get_fps())

@@ -4,7 +4,8 @@ from typing import List, Tuple
 from enum import Enum
 
 from mod.assets import Assets
-from mod.entities import Player, Entity
+from entities.mod import Entity
+from entities.player import Player
 from mod.map import Map
 
 class UiAssets(Assets):
